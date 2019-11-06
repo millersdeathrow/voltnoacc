@@ -18,6 +18,7 @@ bool honda_moving = false;
 bool honda_bosch_hardware = false;
 bool honda_alt_brake_msg = false;
 bool honda_fwd_brake = false;
+bool bosch_ACC_allowed = false;
 
 static void honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 
@@ -81,7 +82,7 @@ static void honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   if (!gas_interceptor_detected) {
     if (addr == 0x17C) {
       int gas = GET_BYTE(to_push, 0);
-      if (gas && !(honda_gas_prev) && long_controls_allowed) {
+      if (gas && !(honda_gas_prev) && long_controls_allowed && !(bosch_ACC_allowed)) {
         controls_allowed = 0;
       }
       honda_gas_prev = gas;
@@ -146,7 +147,7 @@ static int honda_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   // disallow actuator commands if gas or brake (with vehicle moving) are pressed
   // and the the latching controls_allowed flag is True
-  int pedal_pressed = honda_gas_prev || (gas_interceptor_prev > HONDA_GAS_INTERCEPTOR_THRESHOLD) ||
+  int pedal_pressed = (!bosch_ACC_allowed && honda_gas_prev) || (gas_interceptor_prev > HONDA_GAS_INTERCEPTOR_THRESHOLD) ||
                       (honda_brake_pressed_prev && honda_moving);
   bool current_controls_allowed = controls_allowed && !(pedal_pressed);
 
@@ -168,6 +169,7 @@ static int honda_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   // STEER: safety check
   if ((addr == 0xE4) || (addr == 0x194)) {
+    bosch_ACC_allowed = honda_bosch_hardware;
     if (!current_controls_allowed) {
       bool steer_applied = GET_BYTE(to_send, 0) | GET_BYTE(to_send, 1);
       if (steer_applied) {
@@ -179,7 +181,7 @@ static int honda_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   // GAS: safety check
   if (addr == 0x200) {
     if (!current_controls_allowed || !long_controls_allowed) {
-      if (GET_BYTE(to_send, 0) || GET_BYTE(to_send, 1)) {
+      if (!bosch_ACC_allowed && (GET_BYTE(to_send, 0) || GET_BYTE(to_send, 1))) {
         tx = 0;
       }
     }
