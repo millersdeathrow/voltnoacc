@@ -68,10 +68,6 @@ def create_ui_commands(packer, pcm_speed, hud, car_fingerprint, is_metric, idx, 
       'IMPERIAL_UNIT': speed_units,
       'SET_ME_X01_2': 1,
       'SET_ME_X01': 1,
-      "FCM_OFF": stock_hud["FCM_OFF"],
-      "FCM_OFF_2": stock_hud["FCM_OFF_2"],
-      "FCM_PROBLEM": stock_hud["FCM_PROBLEM"],
-      "ICONS": stock_hud["ICONS"],
     }
     commands.append(packer.make_can_msg("ACC_HUD", bus_pt, acc_hud_values, idx))
 

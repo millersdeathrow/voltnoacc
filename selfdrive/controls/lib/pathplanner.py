@@ -14,7 +14,7 @@ from cereal import log
 LaneChangeState = log.PathPlan.LaneChangeState
 LaneChangeDirection = log.PathPlan.LaneChangeDirection
 
-LOG_MPC = os.environ.get('LOG_MPC', True)
+LOG_MPC = os.environ.get('LOG_MPC', False)
 
 DESIRES = {
   LaneChangeDirection.none: {
@@ -53,6 +53,7 @@ class PathPlanner():
     self.setup_mpc()
     self.solution_invalid_cnt = 0
     self.path_offset_i = 0.0
+
     self.mpc_frame = 0
     self.sR_delay_counter = 0
     self.steerRatio_new = 0.0
@@ -73,14 +74,15 @@ class PathPlanner():
     self.sRBP = [float(kegman.conf['sR_BP0']), float(kegman.conf['sR_BP1'])]
 
     self.steerRateCost_prev = self.steerRateCost
-    self.setup_mpc(self.steerRateCost)
-    
-      
-  def setup_mpc(self, steer_rate_cost):
+    self.setup_mpc()
+   
     self.lane_change_state = LaneChangeState.off
     self.lane_change_timer = 0.0
     self.prev_one_blinker = False
 
+
+      
+  def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
     self.libmpc.init(MPC_COST_LAT.PATH, MPC_COST_LAT.LANE, MPC_COST_LAT.HEADING, self.steer_rate_cost)
 
@@ -118,7 +120,7 @@ class PathPlanner():
       if kegman.conf['tuneGernby'] == "1":
         self.steerRateCost = float(kegman.conf['steerRateCost'])
         if self.steerRateCost != self.steerRateCost_prev:
-          self.setup_mpc(self.steerRateCost)
+          self.setup_mpc()
           self.steerRateCost_prev = self.steerRateCost
           
         self.sR = [float(kegman.conf['steerRatio']), (float(kegman.conf['steerRatio']) + float(kegman.conf['sR_boost']))]
@@ -166,7 +168,7 @@ class PathPlanner():
 
       # State transitions
       # off
-      if False: # self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker:
+      if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker:
         self.lane_change_state = LaneChangeState.preLaneChange
 
       # pre

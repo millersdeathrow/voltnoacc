@@ -4,7 +4,7 @@ from common.numpy_fast import interp
 from selfdrive.config import Conversions as CV
 from selfdrive.car import apply_std_steer_torque_limits
 from selfdrive.car.gm import gmcan
-from selfdrive.car.gm.values import DBC, SUPERCRUISE_CARS
+from selfdrive.car.gm.values import DBC, AccState, SUPERCRUISE_CARS
 from opendbc.can.packer import CANPacker
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -77,6 +77,7 @@ class CarController():
     self.car_fingerprint = car_fingerprint
     self.lka_icon_status_last = (False, False)
     self.steer_rate_limited = False
+    self.fcw_count = 0
 
     # Setup detection helper. Routes commands to
     # an appropriate CAN bus number.

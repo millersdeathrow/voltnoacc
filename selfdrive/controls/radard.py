@@ -87,12 +87,6 @@ def get_lead(v_ego, ready, clusters, lead_msg, low_speed_override=True):
 class RadarD():
   def __init__(self, radar_ts, delay=0):
     self.current_time = 0
-    CP = car.CarParams.from_bytes(Params().get("CarParams", block=True))
-
-    if CP.radarOffCan:
-      self.mocked = True
-    else:
-      self.mocked = mocked
 
     self.tracks = defaultdict(dict)
     self.kalman_params = KalmanParams(radar_ts)
@@ -190,10 +184,6 @@ def radard_thread(sm=None, pm=None, can_sock=None):
   # wait for stats about the car to come in from controls
   cloudlog.info("radard is waiting for CarParams")
   CP = car.CarParams.from_bytes(Params().get("CarParams", block=True))
-  if CP.radarOffCan:
-    mocked = True
-  else:
-    mocked = CP.carName == "mock"
   cloudlog.info("radard got CarParams")
 
   # import the radar from the fingerprint
@@ -215,7 +205,7 @@ def radard_thread(sm=None, pm=None, can_sock=None):
   rk = Ratekeeper(1.0 / CP.radarTimeStep, print_delay_threshold=None)
   RD = RadarD(CP.radarTimeStep, RI.delay)
 
-  has_radar = True
+  has_radar = not CP.radarOffCan
 
   while 1:
     can_strings = messaging.drain_sock_raw(can_sock, wait_for_one=True)

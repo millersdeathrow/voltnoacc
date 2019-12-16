@@ -138,8 +138,8 @@ struct CarState {
   leftBlinker @20 :Bool;
   rightBlinker @21 :Bool;
   genericToggle @23 :Bool;
-  distanceToggle @30 :Float32;
-  laneDepartureToggle @31 :Bool;
+  distanceToggle @33 :Float32;
+  laneDepartureToggle @34 :Bool;
 
   # lock info
   doorOpen @24 :Bool;
@@ -151,7 +151,7 @@ struct CarState {
   clutchPressed @28 :Bool;
 
   readdistancelines @32 :Float32;
-  lkMode @29 :Bool;
+  lkMode @35 :Bool;
 
 
 
