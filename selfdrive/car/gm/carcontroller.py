@@ -104,7 +104,7 @@ class CarController():
     ### STEER ###
 
     if (frame % P.STEER_STEP) == 0:
-      lkas_enabled = enabled and not CS.steer_not_allowed and CS.lkMode and CS.v_ego > P.MIN_STEER_SPEED and not CS.left_blinker_on and not CS.right_blinker_on
+      lkas_enabled = enabled and not CS.steer_not_allowed and CS.lkMode and CS.v_ego > P.MIN_STEER_SPEED #and not CS.left_blinker_on and not CS.right_blinker_on
       if lkas_enabled:
         new_steer = actuators.steer * P.STEER_MAX
         apply_steer = apply_std_steer_torque_limits(new_steer, self.apply_steer_last, CS.steer_torque_driver, P)
