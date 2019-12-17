@@ -328,7 +328,7 @@ class CarInterface(CarInterfaceBase):
 
     events = []
     
-    if cruiseEnabled and (self.CS.left_blinker_on or self.CS.right_blinker_on):
+    if cruiseEnabled: #and (self.CS.left_blinker_on or self.CS.right_blinker_on):
        events.append(create_event('manualSteeringRequiredBlinkersOn', [ET.WARNING]))
 
     if self.CS.steer_error:
