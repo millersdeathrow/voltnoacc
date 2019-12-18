@@ -374,7 +374,7 @@ def thermald_thread():
     fw_version_match_prev = fw_version_match
     should_start_prev = should_start
 
-    #print(msg)
+    print(msg)
 
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:
