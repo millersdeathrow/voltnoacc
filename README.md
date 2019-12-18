@@ -2,10 +2,7 @@ Many people have asked if they could donate some cash for my efforts...  I've se
 
 This is a fork of comma's openpilot: https://github.com/commaai/openpilot, and contains tweaks for Hondas and GM vehicles.  It is open source and inherits MIT license.  By installing this software you accept all responsibility for anything that might occur while you use it.  All contributors to this fork are not liable.  <b>Use at your own risk.</b>
 
-<b>NOTE:  If you upgrade to 0.6 you cannot go back to 0.5.xx without reflashing your NEOS!</b>
-Here's how to flash back to v9 NEOS if you want to downgrade (it's not that bad) - scroll to bottom of readme for instructions on downgrading
-
-<b>ALSO IMPORTANT:</b> /data/kegman.json is a file that holds parameters and is used on various branches / forks.  When switching between forks (like @arne182 and @gernby), or between branches within this repo (like non-gernby and gernby), it is best to delete or rename the existing file so there are no parameter conflicts. _Do this before rebooting the EON to compile on the new fork/branch._
+<b>ALSO IMPORTANT:</b> /data/kegman.json is a file that holds parameters and is used on various branches / forks.  When switching between forks (like @arne182 and @gernby), or between different branches within this repo (like non-gernby and gernby), it is best to delete or rename the existing file so there are no parameter conflicts. _Do this before rebooting the EON to compile on the new fork/branch.
   
 <b>WARNING:</b>  Do NOT depend on OP to stop the car in time if you are approaching an object which is not in motion in the same direction as your car.  The radar will NOT detect the stationary object in time to slow your car enough to stop.  If you are approaching a stopped vehicle you must disengage and brake as radars ignore objects that are not in motion.
 
@@ -14,7 +11,7 @@ Here's how to flash back to v9 NEOS if you want to downgrade (it's not that bad)
 I will attempt to detail the changes in each of the branches here:
 
 
-<b>kegman</b> - this is the default branch which does not include Gernby's resonant feed forward steering (i.e. it's comma's default steering)
+<b>kegman</b> - this is the default branch
 
 <b>kegman-plusBoschGasPress</b> - this branch gives Honda Bosch users the ability to press the gas without disengaging OP for more "stock ACC"-like behaviour.  Remember to manually flash panda after checking out.  cd /data/openpilot/panda/board && pkill -f boardd && make - then reboot.
 
@@ -34,8 +31,16 @@ I will attempt to detail the changes in each of the branches here:
 
 <b>kegman-plusGernbySteering-plusAccordHybrid</b> - same as plusAccordHybrid branch but with Gernby Steering added
 
+Known bugs in 0.7:
+- UI settings menu not accessible while car is on.
+- UI lane doesn't turn green - torque colors do not work in path
+- ACC icon light on dash may turn yellow - does not affect OP engage-ability.
 
 List of changes and tweaks (latest changes at the top):
+- <b> New! Nudgeless Auto Lane Change with configurable toggles in kegman.json.  By default the behavior is like comma stock - i.e. signal above 45 mph, then nudge the steering wheel in the direction of the blinkers.  If you don't want to nudge the wheel or want ALC enabled at slower speeds, go into kegman.json and change ALCnudgeLess to "1" and ALCminSpeed to [some value] in m/s units.
+  
+- <b> Disabled stock FCW, stock AEB because they are too sensitive on some cars.
+
 - <b> New! Dynamic Steer Ratio: </b>Some Hondas and other makes / models have been suffering from excessive ping-ponging on straights since 0.6.x.  The fix was to lower steerRatio.  However lowering steerRatio makes the car turn less aggressively on curves so you lose "turnability".  Raising the steerRatio makes you take turns with maximum force, but then you have ping ponging on straights.  Dynamic steer ratio adjusts based on the steering wheel angle to give you a low steerRatio on straights and a high steerRatio on turns.  This gives the best of both worlds.  Dynamic Steer Ratio is inactive by default, to activate, please adjust the following values using the Live Tuner or edit the kegman.json file:
 
 "sR_BP0": "4.0", - is the steering wheel angle (degrees) when the steerRatio should begin to increase
