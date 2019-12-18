@@ -7,7 +7,6 @@ from selfdrive.controls.lib.drive_helpers import MPC_COST_LAT
 from selfdrive.controls.lib.lane_planner import LanePlanner
 from selfdrive.kegman_conf import kegman_conf
 from common.numpy_fast import interp
-from selfdrive.config import Conversions as CV
 import cereal.messaging as messaging
 from cereal import log
 
@@ -75,7 +74,10 @@ class PathPlanner():
 
     self.steerRateCost_prev = self.steerRateCost
     self.setup_mpc()
-   
+
+    self.alc_nudge_less = bool(kegman.conf['ALCnudgeLess'])
+    self.alc_min_speed = float(kegman.conf['ALCminSpeed'])
+
     self.lane_change_state = LaneChangeState.off
     self.lane_change_timer = 0.0
     self.prev_one_blinker = False
@@ -159,10 +161,13 @@ class PathPlanner():
       elif sm['carState'].rightBlinker:
         lane_change_direction = LaneChangeDirection.right
 
-      if lane_change_direction == LaneChangeDirection.left:
-        torque_applied = sm['carState'].steeringTorque > 0 and sm['carState'].steeringPressed
+      if self.alc_nudge_less:
+        torque_applied = True
       else:
-        torque_applied = sm['carState'].steeringTorque < 0 and sm['carState'].steeringPressed
+        if lane_change_direction == LaneChangeDirection.left:
+          torque_applied = sm['carState'].steeringTorque > 0 and sm['carState'].steeringPressed
+        else:
+          torque_applied = sm['carState'].steeringTorque < 0 and sm['carState'].steeringPressed
 
       lane_change_prob = self.LP.l_lane_change_prob + self.LP.r_lane_change_prob
 
@@ -186,7 +191,7 @@ class PathPlanner():
         self.lane_change_state = LaneChangeState.preLaneChange
 
       # Don't allow starting lane change below 45 mph
-      if (v_ego < 45 * CV.MPH_TO_MS) and (self.lane_change_state == LaneChangeState.preLaneChange):
+      if (v_ego < self.alc_min_speed) and (self.lane_change_state == LaneChangeState.preLaneChange):
         self.lane_change_state = LaneChangeState.off
 
     if self.lane_change_state in [LaneChangeState.off, LaneChangeState.preLaneChange]:
