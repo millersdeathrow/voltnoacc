@@ -328,6 +328,8 @@ class CarInterface(CarInterfaceBase):
 
     events = []
     
+    if not self.CS.lkMode:
+      events.append(create_event('manualSteeringRequired', [ET.WARNING]))
     #if cruiseEnabled and (self.CS.left_blinker_on or self.CS.right_blinker_on):
     #   events.append(create_event('manualSteeringRequiredBlinkersOn', [ET.WARNING]))
 
