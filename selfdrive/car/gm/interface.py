@@ -229,8 +229,8 @@ class CarInterface(CarInterfaceBase):
   # returns a car.CarState
   def update(self, c, can_strings):
     self.pt_cp.update_strings(can_strings)
-
-    self.CS.update(self.pt_cp)
+    self.ch_cp.update_strings(can_strings)
+    self.CS.update(self.pt_cp, self.ch_cp)
 
     # create message
     ret = car.CarState.new_message()
