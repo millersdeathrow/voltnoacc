@@ -80,6 +80,7 @@ class PathPlanner():
 
     self.lane_change_state = LaneChangeState.off
     self.lane_change_timer = 0.0
+    self.pre_lane_change_timer = 0.0
     self.prev_one_blinker = False
 
 
@@ -155,24 +156,28 @@ class PathPlanner():
 
     if not active or self.lane_change_timer > 10.0:
       self.lane_change_state = LaneChangeState.off
+      self.pre_lane_change_timer = 0.0
     else:
       if sm['carState'].leftBlinker:
         lane_change_direction = LaneChangeDirection.left
+        self.pre_lane_change_timer += DT_MDL
       elif sm['carState'].rightBlinker:
         lane_change_direction = LaneChangeDirection.right
-
-      if self.alc_nudge_less:
-        torque_applied = True
+        self.pre_lane_change_timer += DT_MDL
       else:
+        self.pre_lane_change_timer = 0.0
+
+      if not self.alc_nudge_less:
         if lane_change_direction == LaneChangeDirection.left:
           torque_applied = sm['carState'].steeringTorque > 0 and sm['carState'].steeringPressed
         else:
           torque_applied = sm['carState'].steeringTorque < 0 and sm['carState'].steeringPressed
+      elif self.pre_lane_change_timer > 2.0:
+        torque_applied = True
+        
 
       lane_change_prob = self.LP.l_lane_change_prob + self.LP.r_lane_change_prob
 
-      # State transitions
-      # off
       if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker:
         self.lane_change_state = LaneChangeState.preLaneChange
 
