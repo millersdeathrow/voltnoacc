@@ -77,6 +77,7 @@ class PathPlanner():
 
     self.alc_nudge_less = bool(int(kegman.conf['ALCnudgeLess']))
     self.alc_min_speed = float(kegman.conf['ALCminSpeed'])
+    self.alc_timer = float(kegman.conf['ALCtimer'])
 
     self.lane_change_state = LaneChangeState.off
     self.lane_change_timer = 0.0
@@ -172,7 +173,7 @@ class PathPlanner():
           torque_applied = sm['carState'].steeringTorque > 0 and sm['carState'].steeringPressed
         else:
           torque_applied = sm['carState'].steeringTorque < 0 and sm['carState'].steeringPressed
-      elif self.pre_lane_change_timer > 2.0:
+      elif self.pre_lane_change_timer > alc_timer:
         torque_applied = True
         
 

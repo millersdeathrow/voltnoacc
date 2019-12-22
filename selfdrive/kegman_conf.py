@@ -114,6 +114,10 @@ class kegman_conf():
         self.config.update({"ALCminSpeed":"20.1168"})
         self.element_updated = True
 
+      if "ALCtimer" not in self.config:
+        self.config.update(["ALCtimer":"2"})
+        self.element_updated = True
+
       if self.element_updated:
         print("updated")
         self.write_config(self.config)
