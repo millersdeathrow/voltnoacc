@@ -115,7 +115,7 @@ class kegman_conf():
         self.element_updated = True
 
       if "ALCtimer" not in self.config:
-        self.config.update(["ALCtimer":"2.0"})
+        self.config.update({"ALCtimer":"2.0"})
         self.element_updated = True
 
       if self.element_updated:
