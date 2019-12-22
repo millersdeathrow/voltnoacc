@@ -173,7 +173,7 @@ class PathPlanner():
           torque_applied = sm['carState'].steeringTorque > 0 and sm['carState'].steeringPressed
         else:
           torque_applied = sm['carState'].steeringTorque < 0 and sm['carState'].steeringPressed
-      elif self.pre_lane_change_timer > alc_timer:
+      elif self.pre_lane_change_timer > self.alc_timer:
         torque_applied = True
         
 
