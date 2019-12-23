@@ -58,7 +58,7 @@ bool ParamsLearner::update(double psi, double u, double sa) {
     ao = new_ao;
     slow_ao = new_slow_ao;
     x = new_x;
-    sR = new_sR;
+    //sR = new_sR;
   }
 
 #ifdef DEBUG
