@@ -1,53 +1,29 @@
 """Utilities for reading real time clocks and keeping soft real time constraints."""
+import os
 import time
-import ctypes
 import platform
 import subprocess
 import multiprocessing
-import os
+from cffi import FFI
 
-CLOCK_MONOTONIC_RAW = 4 # see <linux/time.h>
-CLOCK_BOOTTIME = 7
-
-class timespec(ctypes.Structure):
-  _fields_ = [
-    ('tv_sec', ctypes.c_long),
-    ('tv_nsec', ctypes.c_long),
-  ]
+from common.common_pyx import sec_since_boot  # pylint: disable=no-name-in-module, import-error
 
 
-try:
-  libc = ctypes.CDLL('libc.so', use_errno=True)
-except OSError:
-  try:
-    libc = ctypes.CDLL('libc.so.6', use_errno=True)
-  except OSError:
-    libc = None
+# time step for each process
+DT_CTRL = 0.01  # controlsd
+DT_MDL = 0.05  # model
+DT_DMON = 0.1  # driver monitoring
+DT_TRML = 0.5  # thermald and manager
 
-if libc is not None:
-  libc.clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(timespec)]
 
-def clock_gettime(clk_id):
-  if platform.system() == "darwin":
-    # TODO: fix this
-    return time.time()
-  else:
-    t = timespec()
-    if libc.clock_gettime(clk_id, ctypes.pointer(t)) != 0:
-      errno_ = ctypes.get_errno()
-      raise OSError(errno_, os.strerror(errno_))
-    return t.tv_sec + t.tv_nsec * 1e-9
-
-def monotonic_time():
-  return clock_gettime(CLOCK_MONOTONIC_RAW)
-
-def sec_since_boot():
-  return clock_gettime(CLOCK_BOOTTIME)
+ffi = FFI()
+ffi.cdef("long syscall(long number, ...);")
+libc = ffi.dlopen(None)
 
 
 def set_realtime_priority(level):
   if os.getuid() != 0:
-    print "not setting priority, not root"
+    print("not setting priority, not root")
     return
   if platform.machine() == "x86_64":
     NR_gettid = 186
@@ -57,10 +33,10 @@ def set_realtime_priority(level):
     raise NotImplementedError
 
   tid = libc.syscall(NR_gettid)
-  subprocess.check_call(['chrt', '-f', '-p', str(level), str(tid)])
+  return subprocess.call(['chrt', '-f', '-p', str(level), str(tid)])
 
 
-class Ratekeeper(object):
+class Ratekeeper():
   def __init__(self, rate, print_delay_threshold=0.):
     """Rate in Hz for ratekeeping. print_delay_threshold must be nonnegative."""
     self._interval = 1. / rate
@@ -80,15 +56,19 @@ class Ratekeeper(object):
 
   # Maintain loop rate by calling this at the end of each loop
   def keep_time(self):
-    self.monitor_time()
+    lagged = self.monitor_time()
     if self._remaining > 0:
       time.sleep(self._remaining)
+    return lagged
 
   # this only monitor the cumulative lag, but does not enforce a rate
   def monitor_time(self):
+    lagged = False
     remaining = self._next_frame_time - sec_since_boot()
     self._next_frame_time += self._interval
-    if remaining < -self._print_delay_threshold:
-      print self._process_name, "lagging by", round(-remaining * 1000, 2), "ms"
+    if self._print_delay_threshold is not None and remaining < -self._print_delay_threshold:
+      print("%s lagging by %.2f ms" % (self._process_name, -remaining * 1000))
+      lagged = True
     self._frame += 1
     self._remaining = remaining
+    return lagged

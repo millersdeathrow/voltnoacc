@@ -14,6 +14,7 @@ class LogMessageHandler(logging.Handler):
   def connect(self):
     self.zctx = zmq.Context()
     self.sock = self.zctx.socket(zmq.PUSH)
+    self.sock.setsockopt(zmq.LINGER, 10)
     self.sock.connect("ipc:///tmp/logmessage")
     self.pid = os.getpid()
 
@@ -22,9 +23,10 @@ class LogMessageHandler(logging.Handler):
       self.connect()
 
     msg = self.format(record).rstrip('\n')
-    # print "SEND", repr(msg)
+    # print("SEND".format(repr(msg)))
     try:
-      self.sock.send(chr(record.levelno)+msg, zmq.NOBLOCK)
+      s = chr(record.levelno)+msg
+      self.sock.send(s.encode('utf8'), zmq.NOBLOCK)
     except zmq.error.Again:
       # drop :/
       pass
