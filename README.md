@@ -1,5 +1,3 @@
-Many people have asked if they could donate some cash for my efforts...  I've setup a patreon page here if you feel like buying me a beer or 3:  https://www.patreon.com/kegman
-
 This is a fork of comma's openpilot: https://github.com/commaai/openpilot, and contains tweaks for Hondas and GM vehicles.  It is open source and inherits MIT license.  By installing this software you accept all responsibility for anything that might occur while you use it.  All contributors to this fork are not liable.  <b>Use at your own risk.</b>
 
 <b>ALSO IMPORTANT:</b> /data/kegman.json is a file that holds parameters and is used on various branches / forks.  When switching between forks (like @arne182 and @gernby), or between different branches within this repo (like non-gernby and gernby), it is best to delete or rename the existing file so there are no parameter conflicts. _Do this before rebooting the EON to compile on the new fork/branch.
@@ -10,32 +8,20 @@ This is a fork of comma's openpilot: https://github.com/commaai/openpilot, and c
 
 I will attempt to detail the changes in each of the branches here:
 
+Remember to manually flash panda after checking out.  cd /data/openpilot/panda/board && pkill -f boardd && make - then reboot for both branches
 
 <b>kegman</b> - this is the default branch
 
-<b>kegman-plusBoschGasPress</b> - this branch gives Honda Bosch users the ability to press the gas without disengaging OP for more "stock ACC"-like behaviour.  Remember to manually flash panda after checking out.  cd /data/openpilot/panda/board && pkill -f boardd && make - then reboot.
+<b>kegman-plusBoschGasPress</b> - this branch gives Honda Bosch users the ability to press the gas without disengaging OP for more "stock ACC"-like behaviour.  
 
-<b>kegman-stockUI</b> - for 0.6 some people were having trouble with devUI so I separated the branches out.  
-
-<b>kegman-trafficML</b> - for CommunityPilot traffic signal machine learning and stop signs.  These branches also upload driving videos to CommunityPilot machine learning servers for the development of stopping at intersections.  Want this feature?  Contribute your videos by using this branch in your intersection laiden drives.
-
-<b>kegman-plusGernbySteering</b> - this branch has everything in the kegman branch PLUS Gernby's latest resonant mpc interp steering.  NEW! Now includes a primitive tuning script for your cell phone (or laptop) for live tuning (see feature section below for details)
-
-<b>kegman-plusPilotAwesomeness-0.5.8</b> - <u>Older version of Gernbys steering branch.  Will not be updated but you may use kegman-0.5.8-gold below for updated features.
-
-<b>New: kegman-0.5.8-gold</b> - Visiond from 0.5.8 was far superior for weak / faded lane line areas.  I have updated some of the newer features into this edition such as long control, battery management, and live Kp and Ki tuning.  This also "upgrades" PilotAwesomeness-0.5.8.
-
-<b>kegman-plusClarity</b> - branch specifically for the Honda Clarity (does not contain Gernby steering)
-
-<b>kegman-plusAccordHybrid</b> - branch broken out for Accord Hybrid due to Insight fingerprint conflict
-
-<b>kegman-plusGernbySteering-plusAccordHybrid</b> - same as plusAccordHybrid branch but with Gernby Steering added
 
 Known bugs in 0.7:
 - UI settings menu not accessible while car is on.
 - ACC icon light on dash may turn yellow - does not affect OP engage-ability.
 
 List of changes and tweaks (latest changes at the top):
+- <b> New! Timer for Nudgeless Auto Lane Change (default 2 seconds before lane change is made) </b>.  Thanks to @pjlao307 for getting this to work.  I have made the delay configurable in kegman.json
+  
 - <b> New! Nudgeless Auto Lane Change with configurable toggles in kegman.json. </b>  By default the behavior is like comma stock - i.e. signal above 45 mph, then nudge the steering wheel in the direction of the blinkers.  If you don't want to nudge the wheel or want ALC enabled at slower speeds, go into kegman.json and change ALCnudgeLess to "1" and ALCminSpeed to [some value] in m/s units.
   
 - <b> Disabled stock FCW, stock AEB because they are too sensitive on some cars. </b>
@@ -102,13 +88,11 @@ Example:
 
 Everything inbetween -0.25 m/s and 3 m/s is interpolated, which adjusts the distance smoothly as you slow down depending on the lead car approach relative speed.  
 
-- <b>Highway speed braking profiles</b>:  Added highway braking profiles so that you won't follow so closely at speeds > 70 kph.  This affects kegman-0.5.8-gold, kegman-0.5.11, kegman-plusGernbySteering-0.5.11, kegman-0.12, kegman-0.13-stockUI, kegman-0.6 kegman-plusGernbySteering-0.6 branches only.
+- <b>Highway speed braking profiles</b>:  Added highway braking profiles so that you won't follow so closely at speeds > 70 kph. 
   
 - <b>Live tuner for Kp and Ki</b>:  Tune your Kp and Ki values live using your cell phone by SSHing into the Eon and executing cd /data/openpilot && ./tune.sh
 
 - <b>Add @pjlao307's Dashcam Recording</b>:  Sometimes you just want to record a wicked OP run on a twisty highway to show your friends.  Sometimes you want to record a big flashing red error and complain about it and show your friends.  This does a screen video capture of the Eon screen and stores the files in /sdcard/videos on your Eon when the REC button is pressed.  Thanks to @pjlao307 and @theantihero for submitting the PR.
-
-- <b>Stop logging when space hits 18% free space</b>:  Thanks to @emmertex for this easy fix to stop the Eon from filling up while driving when free space is low.
 
 - <b>Added primitive tuning script</b>: To invoke live tuning:  (a) turn on tethering on your Eon,  (b) install JuiceSSH or similar and connect your cellphone to the wifi of the Eon using 192.168.43.1 and import the Comma private key,  (c) in JuiceSSH in the SSH session on the Eon issue cd /data/openpilot command, then ./tune.sh.  The text UI will be shown.  (d) turn "tuneGernby" to a "1"  (e) start driving and change the values to tune your steering.  It is best to have a cell phone mount in your car.  Note:  It takes 3 seconds for any changes to take effect.  
 
@@ -168,10 +152,6 @@ Everything inbetween -0.25 m/s and 3 m/s is interpolated, which adjusts the dist
 - <b>Smoother acceration from stop (Pedal users)</b>:  The default acceleration / gas profile when pedal is installed may cause a head snapping "lurch" from a stop which can be quite jarring.  This fix smoothes out the acceleration when coming out of a stop.
 
 - <b>Dev UI</b>:  Thanks to @zeeexaris who made this work post 0.5.7 - displays widgets with steering information and temperature as well as lead car velocity and distance.  Very useful when entering turns to know how tight the turn is and more certainty as to whether you have to intervene.  Also great when PID tuning.
-
-- <b>Gernby's Resonant Feed Forward Steering</b>:  This is still a work in progress.  Some cars respond very well while there is more variance with other cars.  You may need to tweak some parameters to make it work well but once it's dialed in it makes the wheel very stiff and more impervious to wind / bumps and in some cases makes car centering better (such as on the PilotAwesomeness branch).  Give it a try and let @gernby know what you find.  Gernby's steering is available on kegman-plusGernbySteering, kegman-plusPilotAwesomeness.  
-
-- <b>Steering off when blinkers on</b>:  The default behaviour when changing lanes is the user overrides the wheel, a bunch of steering required alarms sound and the user lets go of the wheel.  I didn't like fighting the wheel so when the blinkers are on I've disabled the OP steering.  Note that the blinker stock must be fully left or right or held in position for the steering to be off.  The "3 blink" tap of the stock does not deactivate steering for long enough to be noticeable.
 
 - <b>LKAS button toggles steering</b>:  Stock Openpilot deactivates the LKAS button.  In some cases while driving you may have to fight the wheel for a long period of time.  By pressing the LKAS button you can toggle steering off or on so that you don't have to fight the wheel, which can get tiring and probably isn't good for the EPS motor.  When LKAS is toggled off OP still controls gas and brake so it's more like standard ACC.
 
