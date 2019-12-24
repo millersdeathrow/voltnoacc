@@ -33,7 +33,6 @@ I will attempt to detail the changes in each of the branches here:
 
 Known bugs in 0.7:
 - UI settings menu not accessible while car is on.
-- UI lane doesn't turn green - torque colors do not work in path
 - ACC icon light on dash may turn yellow - does not affect OP engage-ability.
 
 List of changes and tweaks (latest changes at the top):
@@ -57,6 +56,10 @@ so on my Pilot which has a steerRatio setting of 12.5, with these settings I get
 - <b> New! @runchman's brake pump chatter fix for pedal users </b> - fixes brake oscillations during engagement at a stop and various other times.
 
 - <b> New! Adjustable stopping distance, one, two, and three bar distance intervals</b>:  BE CAREFUL WITH THESE OPTIONAL SETTINGS IN kegman.json!  Add ONE_BAR_DISTANCE, TWO_BAR_DISTANCE, THREE_BAR_DISTANCE, FOUR_BAR_DISTANCE values in kegman.json to change the following distance interval.  Add STOPPING_DISTANCE to change the distance between you and the lead car at a stop.  If these values do not exist in kegman.json, they just assume default values of 0.9, 1.3, 1.8, 2.3, and 2 respectively.  Thanks to @joeljacobs for adding the optional distance intervals.
+
+E.g.
+Add this line to adjust one bar distance following distance in seconds:
+"ONE_BAR_DISTANCE":"0.7"
 
 - <b> New! Disable Auto Emergency Braking (Nidec Hondas)</b>:  Since 0.6.4 Comma passes through the AEB signal.  This causes unexpected emergency braking on 2 lane highways with oncoming traffic and is unsafe.  I have disabled this.  Ensure that you reflash you Panda if you get AEBs:  cd /data/openpilot/panda/board && pkill -f boardd && make  - after a successful flash, reboot.
 
