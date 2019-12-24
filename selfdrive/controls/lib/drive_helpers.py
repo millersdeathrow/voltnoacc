@@ -1,13 +1,16 @@
 from cereal import car
 from common.numpy_fast import clip, interp
 from selfdrive.config import Conversions as CV
+from selfdrive.kegman_conf import kegman_conf
 
 # kph
+kegman = kegman_conf()
 V_CRUISE_MAX = 144
 V_CRUISE_MIN = 8
-V_CRUISE_DELTA = 8
-V_CRUISE_ENABLE_MIN = 40
-
+V_CRUISE_DELTA = int(kegman.conf['CruiseDelta'])
+V_CRUISE_ENABLE_MIN = int(kegman.conf['CruiseEnableMin'])
+clip(V_CRUISE_DELTA, 2, 16)
+clip(V_CRUISE_ENABLE_MIN, 1, 80)
 
 class MPC_COST_LAT:
   PATH = 1.0
