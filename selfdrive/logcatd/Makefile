@@ -1,7 +1,10 @@
 CC = clang
 CXX = clang++
 
+ARCH := $(shell uname -m)
+
 PHONELIBS = ../../phonelibs
+BASEDIR = ../..
 
 WARN_FLAGS = -Werror=implicit-function-declaration \
              -Werror=incompatible-pointer-types \
@@ -12,43 +15,41 @@ WARN_FLAGS = -Werror=implicit-function-declaration \
 CFLAGS = -std=gnu11 -g -fPIC -O2 $(WARN_FLAGS)
 CXXFLAGS = -std=c++11 -g -fPIC -O2 $(WARN_FLAGS)
 
-ZMQ_FLAGS = -I$(PHONELIBS)/zmq/aarch64/include
-ZMQ_LIBS = -L$(PHONELIBS)/zmq/aarch64/lib \
-           -l:libczmq.a -l:libzmq.a \
-           -lgnustl_shared
+MESSAGING_FLAGS = -I$(BASEDIR)/selfdrive/messaging
+MESSAGING_LIBS = $(BASEDIR)/selfdrive/messaging/messaging.a
 
-CEREAL_FLAGS = -I$(PHONELIBS)/capnp-cpp/include
-CEREAL_LIBS = -L$(PHONELIBS)/capnp-cpp/aarch64/lib/ \
-              -l:libcapnp.a -l:libkj.a
-CEREAL_OBJS = ../../cereal/gen/c/log.capnp.o
+ifeq ($(ARCH),aarch64)
+CFLAGS += -mcpu=cortex-a57
+CXXFLAGS += -mcpu=cortex-a57
+EXTRA_LIBS += -lgnustl_shared
+endif
+
+
+.PHONY: all
+all: logcatd
+
+include ../common/cereal.mk
 
 OBJS = logcatd.o \
-       log.capnp.o
+       $(CEREAL_OBJS)
 
 DEPS := $(OBJS:.o=.d)
 
-all: logcatd
-
-logcatd: $(OBJS)
+logcatd: $(OBJS) $(MESSAGING_LIBS)
 	@echo "[ LINK ] $@"
 	$(CXX) -fPIC -o '$@' $^ \
             $(CEREAL_LIBS) \
-            $(ZMQ_LIBS) \
+            $(EXTRA_LIBS) \
             -llog
 
 %.o: %.cc
 	@echo "[ CXX ] $@"
 	$(CXX) $(CXXFLAGS) \
            -I$(PHONELIBS)/android_system_core/include \
-           $(CEREAL_FLAGS) \
-           $(ZMQ_FLAGS) \
+           $(CEREAL_CXXFLAGS) \
+           $(MESSAGING_FLAGS) \
            -I../ \
            -I../../ \
-           -c -o '$@' '$<'
-
-log.capnp.o: ../../cereal/gen/cpp/log.capnp.c++
-	@echo "[ CXX ] $@"
-	$(CXX) $(CXXFLAGS) $(CEREAL_FLAGS) \
            -c -o '$@' '$<'
 
 .PHONY: clean

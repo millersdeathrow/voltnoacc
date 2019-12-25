@@ -1,132 +1,73 @@
-import numpy as np
-import platform
-import os
-import sys
+from common.realtime import DT_MDL
+from common.kalman.simple_kalman import KF1D
+from selfdrive.config import RADAR_TO_CENTER
 
-from common.kalman.ekf import FastEKF1D, SimpleSensor
+
+# the longer lead decels, the more likely it will keep decelerating
+# TODO is this a good default?
+_LEAD_ACCEL_TAU = 1.5
 
 # radar tracks
 SPEED, ACCEL = 0, 1   # Kalman filter states enum
 
-rate, ratev = 20., 20.    # model and radar are both at 20Hz
-ts = 1./rate
-freq_v_lat = 0.2 # Hz
-k_v_lat = 2*np.pi*freq_v_lat*ts / (1 + 2*np.pi*freq_v_lat*ts)
-
-freq_a_lead = .5 # Hz
-k_a_lead = 2*np.pi*freq_a_lead*ts / (1 + 2*np.pi*freq_a_lead*ts)
-
 # stationary qualification parameters
-v_stationary_thr = 4.   # objects moving below this speed are classified as stationary
-v_oncoming_thr   = -3.9 # needs to be a bit lower in abs value than v_stationary_thr to not leave "holes"
 v_ego_stationary = 4.   # no stationary object flag below this speed
 
-class Track(object):
+# Lead Kalman Filter params
+_VLEAD_A = [[1.0, DT_MDL], [0.0, 1.0]]
+_VLEAD_C = [1.0, 0.0]
+#_VLEAD_Q = np.matrix([[10., 0.0], [0.0, 100.]])
+#_VLEAD_R = 1e3
+#_VLEAD_K = np.matrix([[ 0.05705578], [ 0.03073241]])
+_VLEAD_K = [[0.1988689], [0.28555364]]
+
+
+class Track():
   def __init__(self):
     self.ekf = None
-    self.stationary = True
-    self.initted = False
+    self.cnt = 0
+    self.aLeadTau = _LEAD_ACCEL_TAU
 
-  def update(self, d_rel, y_rel, v_rel, d_path, v_ego_t_aligned):
-    if self.initted:
-      self.dPathPrev = self.dPath
-      self.vLeadPrev = self.vLead
-      self.vRelPrev = self.vRel
-
+  def update(self, d_rel, y_rel, v_rel, v_ego_t_aligned, measured):
     # relative values, copy
     self.dRel = d_rel   # LONG_DIST
     self.yRel = y_rel   # -LAT_DIST
     self.vRel = v_rel   # REL_SPEED
-
-    # compute distance to path
-    self.dPath = d_path
+    self.measured = measured   # measured or estimate
 
     # computed velocity and accelerations
     self.vLead = self.vRel + v_ego_t_aligned
 
-    if not self.initted:
-      self.aRel = 0.      # nidec gives no information about this
-      self.vLat = 0.
-      self.aLead = 0.
+    if self.cnt == 0:
+      self.kf = KF1D([[self.vLead], [0.0]], _VLEAD_A, _VLEAD_C, _VLEAD_K)
     else:
-      # estimate acceleration
-      a_rel_unfilt = (self.vRel - self.vRelPrev) / ts
-      a_rel_unfilt = np.clip(a_rel_unfilt, -10., 10.)
-      self.aRel = k_a_lead * a_rel_unfilt + (1 - k_a_lead) * self.aRel
+      self.kf.update(self.vLead)
 
-      v_lat_unfilt = (self.dPath - self.dPathPrev) / ts
-      self.vLat = k_v_lat * v_lat_unfilt + (1 - k_v_lat) * self.vLat
+    self.cnt += 1
 
-      a_lead_unfilt = (self.vLead - self.vLeadPrev) / ts
-      a_lead_unfilt = np.clip(a_lead_unfilt, -10., 10.)
-      self.aLead = k_a_lead * a_lead_unfilt + (1 - k_a_lead) * self.aLead
+    self.vLeadK = float(self.kf.x[SPEED][0])
+    self.aLeadK = float(self.kf.x[ACCEL][0])
 
-    if self.stationary:
-      # stationary objects can become non stationary, but not the other way around
-      self.stationary = v_ego_t_aligned > v_ego_stationary and abs(self.vLead) < v_stationary_thr
-    self.oncoming = self.vLead < v_oncoming_thr
-
-    if self.ekf is None:
-      self.ekf = FastEKF1D(ts, 1e3, [0.1, 1])
-      self.ekf.state[SPEED] = self.vLead
-      self.ekf.state[ACCEL] = 0
-      self.lead_sensor = SimpleSensor(SPEED, 1, 2)
-
-      self.vLeadK = self.vLead
-      self.aLeadK = self.aLead
+    # Learn if constant acceleration
+    if abs(self.aLeadK) < 0.5:
+      self.aLeadTau = _LEAD_ACCEL_TAU
     else:
-      self.ekf.update_scalar(self.lead_sensor.read(self.vLead))
-      self.ekf.predict(ts)
-      self.vLeadK = float(self.ekf.state[SPEED])
-      self.aLeadK = float(self.ekf.state[ACCEL])
-
-    if not self.initted:
-      self.cnt = 1
-      self.vision_cnt = 0
-    else:
-      self.cnt += 1
-
-    self.initted = True
-    self.vision = False
-
-  def mix_vision(self, dist_to_vision, rel_speed_diff):
-    # rel speed is very hard to estimate from vision
-    if dist_to_vision < 4.0 and rel_speed_diff < 10.:
-      # vision point is never stationary
-      self.stationary = False
-      self.vision = True
-      self.vision_cnt += 1
+      self.aLeadTau *= 0.9
 
   def get_key_for_cluster(self):
     # Weigh y higher since radar is inaccurate in this dimension
-    return [self.dRel, self.dPath*2, self.vRel]
+    return [self.dRel, self.yRel*2, self.vRel]
 
-# ******************* Cluster *******************
-
-if platform.machine() == 'aarch64':
-  for x in sys.path:
-    pp = os.path.join(x, "phonelibs/hierarchy/lib")
-    if os.path.isfile(os.path.join(pp, "_hierarchy.so")):
-      sys.path.append(pp)
-      break
-  import _hierarchy
-else:
-  from scipy.cluster import _hierarchy
-
-def fcluster(Z, t, criterion='inconsistent', depth=2, R=None, monocrit=None):
-  # supersimplified function to get fast clustering. Got it from scipy
-  Z = np.asarray(Z, order='c')
-  n = Z.shape[0] + 1
-  T = np.zeros((n,), dtype='i')
-  _hierarchy.cluster_dist(Z, T, float(t), int(n))
-  return T
-
-RDR_TO_LDR = 2.7
+  def reset_a_lead(self, aLeadK, aLeadTau):
+    self.kf = KF1D([[self.vLead], [aLeadK]], _VLEAD_A, _VLEAD_C, _VLEAD_K)
+    self.aLeadK = aLeadK
+    self.aLeadTau = aLeadTau
 
 def mean(l):
-  return sum(l)/len(l)
+  return sum(l) / len(l)
 
-class Cluster(object):
+
+class Cluster():
   def __init__(self):
     self.tracks = set()
 
@@ -156,10 +97,6 @@ class Cluster(object):
     return mean([t.vLead for t in self.tracks])
 
   @property
-  def aLead(self):
-    return mean([t.aLead for t in self.tracks])
-
-  @property
   def dPath(self):
     return mean([t.dPath for t in self.tracks])
 
@@ -173,84 +110,59 @@ class Cluster(object):
 
   @property
   def aLeadK(self):
-    return mean([t.aLeadK for t in self.tracks])
+    if all(t.cnt <= 1 for t in self.tracks):
+      return 0.
+    else:
+      return mean([t.aLeadK for t in self.tracks if t.cnt > 1])
 
   @property
-  def vision(self):
-    return any([t.vision for t in self.tracks])
+  def aLeadTau(self):
+    if all(t.cnt <= 1 for t in self.tracks):
+      return _LEAD_ACCEL_TAU
+    else:
+      return mean([t.aLeadTau for t in self.tracks if t.cnt > 1])
 
   @property
-  def vision_cnt(self):
-    return max([t.vision_cnt for t in self.tracks])
+  def measured(self):
+    return any(t.measured for t in self.tracks)
 
-  @property
-  def stationary(self):
-    return all([t.stationary for t in self.tracks])
+  def get_RadarState(self, model_prob=0.0):
+    return {
+      "dRel": float(self.dRel),
+      "yRel": float(self.yRel),
+      "vRel": float(self.vRel),
+      "vLead": float(self.vLead),
+      "vLeadK": float(self.vLeadK),
+      "aLeadK": float(self.aLeadK),
+      "status": True,
+      "fcw": self.is_potential_fcw(model_prob),
+      "modelProb": model_prob,
+      "radar": True,
+      "aLeadTau": float(self.aLeadTau)
+    }
 
-  @property
-  def oncoming(self):
-    return all([t.oncoming for t in self.tracks])
-
-  def toLive20(self, lead):
-    lead.dRel = float(self.dRel) - RDR_TO_LDR
-    lead.yRel = float(self.yRel)
-    lead.vRel = float(self.vRel)
-    lead.aRel = float(self.aRel)
-    lead.vLead = float(self.vLead)
-    lead.aLead = float(self.aLead)
-    lead.dPath = float(self.dPath)
-    lead.vLat = float(self.vLat)
-    lead.vLeadK = float(self.vLeadK)
-    lead.aLeadK = float(self.aLeadK)
-    lead.status = True
-    lead.fcw = False
+  def get_RadarState_from_vision(self, lead_msg, v_ego):
+    return {
+      "dRel": float(lead_msg.dist - RADAR_TO_CENTER),
+      "yRel": float(lead_msg.relY),
+      "vRel": float(lead_msg.relVel),
+      "vLead": float(v_ego + lead_msg.relVel),
+      "vLeadK": float(v_ego + lead_msg.relVel),
+      "aLeadK": float(0),
+      "aLeadTau": _LEAD_ACCEL_TAU,
+      "fcw": False,
+      "modelProb": float(lead_msg.prob),
+      "radar": False,
+      "status": True
+    }
 
   def __str__(self):
-    ret = "x: %7.2f  y: %7.2f  v: %7.2f  a: %7.2f" % (self.dRel, self.yRel, self.vRel, self.aRel)
-    if self.stationary:
-      ret += " stationary"
-    if self.vision:
-      ret += " vision"
-    if self.oncoming:
-      ret += " oncoming"
-    if self.vision_cnt > 0:
-      ret += " vision_cnt: %6.0f" % self.vision_cnt
+    ret = "x: %4.1f  y: %4.1f  v: %4.1f  a: %4.1f" % (self.dRel, self.yRel, self.vRel, self.aLeadK)
     return ret
 
-  def is_potential_lead(self, v_ego, enabled):
-    # predict cut-ins by extrapolating lateral speed by a lookahead time
-    # lookahead time depends on cut-in distance. more attentive for close cut-ins
-    # also, above 50 meters the predicted path isn't very reliable
+  def potential_low_speed_lead(self, v_ego):
+    # stop for stuff in front of you and low speed, even without model confirmation
+    return abs(self.yRel) < 1.5 and (v_ego < v_ego_stationary) and self.dRel < 25
 
-    # the distance at which v_lat matters is higher at higher speed
-    lookahead_dist = 40. + v_ego/1.2   #40m at 0mph, ~70m at 80mph
-
-    t_lookahead_v  = [1., 0.]
-    t_lookahead_bp = [10., lookahead_dist]
-
-    # average dist
-    d_path = self.dPath
-
-    if enabled:
-      t_lookahead = np.interp(self.dRel, t_lookahead_bp, t_lookahead_v)
-      # correct d_path for lookahead time, considering only cut-ins and no more than 1m impact
-      lat_corr = np.clip(t_lookahead * self.vLat, -1, 0)
-    else:
-      lat_corr = 0.
-    d_path = np.maximum(d_path + lat_corr, 0)
-
-    if d_path < 1.5 and not self.stationary and not self.oncoming:
-      return True
-    else:
-      return False
-
-  def is_potential_lead2(self, lead_clusters):
-    if len(lead_clusters) > 0:
-      lead_cluster = lead_clusters[0]
-      # check if the new lead is too close and roughly at the same speed of the first lead: it might just be the second axle of the same vehicle
-      if (self.dRel - lead_cluster.dRel) < 8. and abs(self.vRel - lead_cluster.vRel) < 1.:
-        return False
-      else:
-        return True
-    else:
-      return False
+  def is_potential_fcw(self, model_prob):
+    return model_prob > .9
