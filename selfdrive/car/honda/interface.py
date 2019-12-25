@@ -257,11 +257,14 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2644. * CV.LB_TO_KG + STD_CARGO_KG
       ret.wheelbase = 2.53
       ret.centerToFront = ret.wheelbase * 0.39
-      ret.steerRatio = 13.06
+      ret.steerRatio = 10.25
       tire_stiffness_factor = 0.75
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.06]]
-      ret.longitudinalTuning.kpBP = [0., 5., 35.]
-      ret.longitudinalTuning.kpV = [1.2, 0.8, 0.5]
+      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.20], [0.04]]
+      # BP values are speeds - 0 m/s, 10 m/s, 35 m/s
+      # which is 0 MPH, 22 MPH, and 78 MPH
+      ret.longitudinalTuning.kpBP = [0., 10., 35.]
+      # These are corresponding Kp values with the above speeds
+      ret.longitudinalTuning.kpV = [0.6, 0.4, 0.3]
       ret.longitudinalTuning.kiBP = [0., 35.]
       ret.longitudinalTuning.kiV = [0.18, 0.12]
 
