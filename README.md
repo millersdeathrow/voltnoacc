@@ -6,7 +6,7 @@ This is a fork of comma's openpilot: https://github.com/commaai/openpilot, and c
 
 <b>NOTICE:</b>  Due to feedback I have turned on OTA updates.  You will receive updates automatically (after rebooting 2X) on your Eon so you don't have to reclone or git pull any longer to receive new features *MADE BETWEEN COMMA RELEASES*.  The reason why I separate the branches by release is because some releases can sometimes cause issues.  Features that I or others add, will continue to be updated when you are on the most current release.  If you DO NOT want OTA updates then create a file called "/data/no_ota_updates" and it will not perform OTA updates as long as that file exists.  
 
-I will attempt to detail the changes in each of the branches here:
+I will attempt to detail the changes in each of the branches here: 
 
 Remember to manually flash panda after checking out.  cd /data/openpilot/panda/board && pkill -f boardd && make - then reboot for both branches
 
