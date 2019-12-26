@@ -6,11 +6,10 @@
 //      accel rising edge
 //      brake rising edge
 //      brake > 0mph
-
 const AddrBus HONDA_N_TX_MSGS[] = {{0xE4, 0}, {0x194, 0}, {0x1FA, 0}, {0x200, 0}, {0x30C, 0}, {0x33D, 0}, {0x39F, 0}};
 const AddrBus HONDA_BH_TX_MSGS[] = {{0xE4, 0}, {0x296, 1}, {0x33D, 0}};  // Bosch Harness
 const AddrBus HONDA_BG_TX_MSGS[] = {{0xE4, 2}, {0x296, 0}, {0x33D, 2}};  // Bosch Giraffe
-const int HONDA_GAS_INTERCEPTOR_THRESHOLD = 800;  // ratio between offset and gain from dbc file
+const int HONDA_GAS_INTERCEPTOR_THRESHOLD = 328;  // ratio between offset and gain from dbc file
 int honda_brake = 0;
 int honda_gas_prev = 0;
 bool honda_brake_pressed_prev = false;
@@ -87,7 +86,6 @@ static void honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       honda_gas_prev = gas;
     }
   }
-  
   /*
   if ((bus == 2) && (addr == 0x1FA)) {
     bool honda_stock_aeb = GET_BYTE(to_push, 3) & 0x20;
@@ -101,7 +99,7 @@ static void honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       honda_fwd_brake = true;
     } else {
       // Leave Honda forward brake as is
-    }
+    } 
   }
   */
 
@@ -136,8 +134,9 @@ static int honda_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
       tx = 0;
     }
   }
+  //Clarity - keep tx = 1;
   if (!honda_bosch_hardware && !addr_allowed(addr, bus, HONDA_N_TX_MSGS, sizeof(HONDA_N_TX_MSGS)/sizeof(HONDA_N_TX_MSGS[0]))) {
-    tx = 0;
+    tx = 1; //Clarity
   }
 
   if (relay_malfunction) {
@@ -216,33 +215,34 @@ static void honda_bosch_init(int16_t param) {
   honda_alt_brake_msg = (param == 1) ? true : false;
 }
 
-static int honda_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-  // fwd from car to camera. also fwd certain msgs from camera to car
-  // 0xE4 is steering on all cars except CRV and RDX, 0x194 for CRV and RDX,
-  // 0x1FA is brake control, 0x30C is acc hud, 0x33D is lkas hud,
-  // 0x39f is radar hud
-  int bus_fwd = -1;
-
-  if (!relay_malfunction) {
-    if (bus_num == 0) {
-      bus_fwd = 2;
-    }
-    if (bus_num == 2) {
-      // block stock lkas messages and stock acc messages (if OP is doing ACC)
-      int addr = GET_ADDR(to_fwd);
-      bool is_lkas_msg = (addr == 0xE4) || (addr == 0x194) || (addr == 0x33D);
-      bool is_acc_hud_msg = (addr == 0x30C) || (addr == 0x39F);
-      bool is_brake_msg = addr == 0x1FA;
-      bool block_fwd = is_lkas_msg ||
-                       (is_acc_hud_msg && long_controls_allowed) ||
-                       (is_brake_msg && long_controls_allowed && !honda_fwd_brake);
-      if (!block_fwd) {
-        bus_fwd = 0;
-      }
-    }
-  }
-  return bus_fwd;
-}
+//Clarity
+//static int honda_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+//  // fwd from car to camera. also fwd certain msgs from camera to car
+//  // 0xE4 is steering on all cars except CRV and RDX, 0x194 for CRV and RDX,
+//  // 0x1FA is brake control, 0x30C is acc hud, 0x33D is lkas hud,
+//  // 0x39f is radar hud
+//  int bus_fwd = -1;
+//
+//  if (!relay_malfunction) {
+//    if (bus_num == 0) {
+//      bus_fwd = 2;
+//    }
+//    if (bus_num == 2) {
+//      // block stock lkas messages and stock acc messages (if OP is doing ACC)
+//      int addr = GET_ADDR(to_fwd);
+//      bool is_lkas_msg = (addr == 0xE4) || (addr == 0x194) || (addr == 0x33D);
+//      bool is_acc_hud_msg = (addr == 0x30C) || (addr == 0x39F);
+//      bool is_brake_msg = addr == 0x1FA;
+//      bool block_fwd = is_lkas_msg ||
+//                       (is_acc_hud_msg && long_controls_allowed) ||
+//                       (is_brake_msg && long_controls_allowed && !honda_fwd_brake);
+//      if (!block_fwd) {
+//        bus_fwd = 0;
+//      }
+//    }
+//  }
+//  return bus_fwd;
+//}
 
 static int honda_bosch_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   int bus_fwd = -1;
@@ -269,7 +269,7 @@ const safety_hooks honda_hooks = {
   .rx = honda_rx_hook,
   .tx = honda_tx_hook,
   .tx_lin = nooutput_tx_lin_hook,
-  .fwd = honda_fwd_hook,
+  .fwd = default_fwd_hook, //Clarity
 };
 
 const safety_hooks honda_bosch_hooks = {

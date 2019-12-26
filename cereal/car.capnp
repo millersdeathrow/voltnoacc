@@ -154,8 +154,6 @@ struct CarState {
   readdistancelines @32 :Float32;
   lkMode @35 :Bool;
 
-
-
   # which packets this state came from
   canMonoTimes @12: List(UInt64);
 
