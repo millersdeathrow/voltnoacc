@@ -6,7 +6,7 @@ from opendbc.can.can_define import CANDefine
 from opendbc.can.parser import CANParser
 from selfdrive.config import Conversions as CV
 from selfdrive.car.honda.values import CAR, DBC, STEER_THRESHOLD, SPEED_FACTOR, HONDA_BOSCH
-from selfdrive.kegman_conf import kegman_conf
+from selfdrive.kegman_conf import KegmanConf
 
 GearShifter = car.CarState.GearShifter
 
@@ -202,7 +202,7 @@ def get_cam_can_parser(CP):
 
 class CarState():
   def __init__(self, CP):
-    self.kegman = kegman_conf()
+    self.kegman = KegmanConf()
     self.trMode = int(self.kegman.conf['lastTrMode'])     # default to last distance interval on startup
     #self.trMode = 1
     self.lkMode = True
@@ -392,7 +392,7 @@ class CarState():
     if self.cruise_setting == 3:
       if cp.vl["SCM_BUTTONS"]["CRUISE_SETTING"] == 0:
         self.trMode = (self.trMode + 1 ) % 4
-        self.kegman = kegman_conf()
+        self.kegman = KegmanConf()
         self.kegman.conf['lastTrMode'] = str(self.trMode)   # write last distance bar setting to file
         self.kegman.write_config(self.kegman.conf) 
         

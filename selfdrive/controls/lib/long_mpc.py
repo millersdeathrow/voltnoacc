@@ -8,10 +8,10 @@ from common.realtime import sec_since_boot
 from selfdrive.controls.lib.radar_helpers import _LEAD_ACCEL_TAU
 from selfdrive.controls.lib.longitudinal_mpc import libmpc_py
 from selfdrive.controls.lib.drive_helpers import MPC_COST_LONG
-from selfdrive.kegman_conf import kegman_conf
+from selfdrive.kegman_conf import KegmanConf
 
 # One, two and three bar distances (in s)
-kegman = kegman_conf()
+kegman = KegmanConf()
 if "ONE_BAR_DISTANCE" in kegman.conf:
     ONE_BAR_DISTANCE = float(kegman.conf['ONE_BAR_DISTANCE'])
 else:
@@ -88,7 +88,7 @@ class LongitudinalMpc():
     
     self.bp_counter = 0  
     
-    kegman = kegman_conf()
+    kegman = KegmanConf()
     self.oneBarBP = [float(kegman.conf['1barBP0']), float(kegman.conf['1barBP1'])]
     self.twoBarBP = [float(kegman.conf['2barBP0']), float(kegman.conf['2barBP1'])]
     self.threeBarBP = [float(kegman.conf['3barBP0']), float(kegman.conf['3barBP1'])]
@@ -178,7 +178,7 @@ class LongitudinalMpc():
     # Live Tuning of breakpoints for braking profile change
     self.bp_counter += 1
     if self.bp_counter % 500 == 0:
-      kegman = kegman_conf()
+      kegman = KegmanConf()
       self.oneBarBP = [float(kegman.conf['1barBP0']), float(kegman.conf['1barBP1'])]
       self.twoBarBP = [float(kegman.conf['2barBP0']), float(kegman.conf['2barBP1'])]
       self.threeBarBP = [float(kegman.conf['3barBP0']), float(kegman.conf['3barBP1'])]

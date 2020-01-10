@@ -15,9 +15,9 @@ from selfdrive.version import terms_version, training_version
 from selfdrive.swaglog import cloudlog
 import cereal.messaging as messaging
 from selfdrive.loggerd.config import get_available_percent
-from selfdrive.kegman_conf import kegman_conf
+from selfdrive.kegman_conf import KegmanConf
 
-kegman = kegman_conf()
+kegman = KegmanConf()
 from selfdrive.pandad import get_expected_version
 
 FW_VERSION = get_expected_version()

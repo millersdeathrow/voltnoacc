@@ -5,7 +5,7 @@ from selfdrive.swaglog import cloudlog
 from selfdrive.controls.lib.lateral_mpc import libmpc_py
 from selfdrive.controls.lib.drive_helpers import MPC_COST_LAT
 from selfdrive.controls.lib.lane_planner import LanePlanner
-from selfdrive.kegman_conf import kegman_conf
+from selfdrive.kegman_conf import KegmanConf
 from common.numpy_fast import interp
 import cereal.messaging as messaging
 from cereal import log
@@ -58,7 +58,7 @@ class PathPlanner():
     self.steerRatio_new = 0.0
     self.sR_time = 1
     
-    kegman = kegman_conf(CP)
+    kegman = KegmanConf(CP)
     if kegman.conf['steerRatio'] == "-1":
       self.steerRatio = CP.steerRatio
     else:
@@ -68,6 +68,11 @@ class PathPlanner():
       self.steerRateCost = CP.steerRateCost
     else:
       self.steerRateCost = float(kegman.conf['steerRateCost'])
+
+    if kegman.conf['steerActuatorDelay'] == "-1":
+      self.steerActuatorDelay = CP.steerActuatorDelay
+    else:
+      self.steerActuatorDelay = float(kegman.conf['steerActuatorDelay'])
       
     self.sR = [float(kegman.conf['steerRatio']), (float(kegman.conf['steerRatio']) + float(kegman.conf['sR_boost']))]
     self.sRBP = [float(kegman.conf['sR_BP0']), float(kegman.conf['sR_BP1'])]
@@ -116,16 +121,18 @@ class PathPlanner():
     VM.update_params(sm['liveParameters'].stiffnessFactor, sm['liveParameters'].steerRatio)
     curvature_factor = VM.curvature_factor(v_ego)
     
-    # Get steerRatio and steerRateCost from kegman.json every x seconds
+    # Get steerRatio, steerRateCost, steerActuatorDelay from kegman.json every x seconds
     self.mpc_frame += 1
     if self.mpc_frame % 500 == 0:
       # live tuning through /data/openpilot/tune.py overrides interface.py settings
-      kegman = kegman_conf()
+      kegman = KegmanConf()
       if kegman.conf['tuneGernby'] == "1":
         self.steerRateCost = float(kegman.conf['steerRateCost'])
         if self.steerRateCost != self.steerRateCost_prev:
           self.setup_mpc()
           self.steerRateCost_prev = self.steerRateCost
+
+        self.steerActuatorDelay = float(kegman.conf['steerActuatorDelay'])
           
         self.sR = [float(kegman.conf['steerRatio']), (float(kegman.conf['steerRatio']) + float(kegman.conf['sR_boost']))]
         self.sRBP = [float(kegman.conf['sR_BP0']), float(kegman.conf['sR_BP1'])]
@@ -146,8 +153,6 @@ class PathPlanner():
         self.sR_delay_counter = 0
     else:
       self.steerRatio = self.sR[0]
-      
-    print("steerRatio = ", self.steerRatio)
 
     self.LP.parse_model(sm['model'])
 
@@ -229,7 +234,7 @@ class PathPlanner():
     #   self.path_offset_i = 0.0
 
     # account for actuation delay
-    self.cur_state = calc_states_after_delay(self.cur_state, v_ego, angle_steers - angle_offset, curvature_factor, self.steerRatio, CP.steerActuatorDelay)
+    self.cur_state = calc_states_after_delay(self.cur_state, v_ego, angle_steers - angle_offset, curvature_factor, self.steerRatio, self.steerActuatorDelay)
 
     v_ego_mpc = max(v_ego, 5.0)  # avoid mpc roughness due to low speed
     self.libmpc.run_mpc(self.cur_state, self.mpc_solution,
