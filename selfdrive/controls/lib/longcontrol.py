@@ -1,9 +1,9 @@
 from cereal import log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import PIController
-from selfdrive.kegman_conf import KegmanConf
+from selfdrive.kegman_conf import kegman_conf
 
-kegman = KegmanConf()
+kegman = kegman_conf()
 LongCtrlState = log.ControlsState.LongControlState
 
 STOPPING_EGO_SPEED = 0.5
