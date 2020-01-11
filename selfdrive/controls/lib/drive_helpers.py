@@ -1,10 +1,10 @@
 from cereal import car
 from common.numpy_fast import clip, interp
 from selfdrive.config import Conversions as CV
-from selfdrive.kegman_conf import KegmanConf
+from selfdrive.kegman_conf import kegman_conf
 
 # kph
-kegman = KegmanConf()
+kegman = kegman_conf()
 V_CRUISE_MAX = 144
 V_CRUISE_MIN = 8
 V_CRUISE_DELTA = int(kegman.conf['CruiseDelta'])

@@ -2,12 +2,12 @@ from selfdrive.controls.lib.pid import PIController
 from selfdrive.controls.lib.drive_helpers import get_steer_max
 from cereal import car
 from cereal import log
-from selfdrive.kegman_conf import KegmanConf
+from selfdrive.kegman_conf import kegman_conf
 
 
 class LatControlPID():
   def __init__(self, CP):
-    self.kegman = KegmanConf(CP)
+    self.kegman = kegman_conf(CP)
     self.deadzone = float(self.kegman.conf['deadzone'])
     self.pid = PIController((CP.lateralTuning.pid.kpBP, CP.lateralTuning.pid.kpV),
                             (CP.lateralTuning.pid.kiBP, CP.lateralTuning.pid.kiV),
@@ -22,7 +22,7 @@ class LatControlPID():
     self.mpc_frame += 1
     if self.mpc_frame % 300 == 0:
       # live tuning through /data/openpilot/tune.py overrides interface.py settings
-      self.kegman = KegmanConf(CP)
+      self.kegman = kegman_conf()
       if self.kegman.conf['tuneGernby'] == "1":
         self.steerKpV = [float(self.kegman.conf['Kp'])]
         self.steerKiV = [float(self.kegman.conf['Ki'])]

@@ -3,10 +3,8 @@ from common.realtime import DT_CTRL, DT_DMON
 from selfdrive.controls.lib.drive_helpers import create_event, EventTypes as ET
 from common.filter_simple import FirstOrderFilter
 from common.stat_live import RunningStatFilter
-from selfdrive.kegman_conf import KegmanConf
-
-
-kegman = KegmanConf()
+from selfdrive.kegman_conf import kegman_conf
+kegman = kegman_conf()
 
 
 _AWARENESS_TIME = min(int(kegman.conf['wheelTouchSeconds']), 600)    # x minutes limit without user touching steering wheels make the car enter a terminal status
