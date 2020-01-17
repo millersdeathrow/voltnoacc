@@ -1,15 +1,16 @@
 from collections import namedtuple
+from cereal import car
 from common.realtime import DT_CTRL
 from selfdrive.controls.lib.drive_helpers import rate_limit
 from common.numpy_fast import clip
 from selfdrive.car import create_gas_command
 from selfdrive.car.honda import hondacan
-from selfdrive.car.honda.values import AH, CruiseButtons, CAR
-from selfdrive.kegman_conf import kegman_conf
-
-kegman = kegman_conf()
+from selfdrive.car.honda.values import CruiseButtons, CAR, VISUAL_HUD
 from opendbc.can.packer import CANPacker
+from selfdrive.kegman_conf import kegman_conf
+kegman = kegman_conf()
 
+VisualAlert = car.CarControl.HUDControl.VisualAlert
 
 def actuator_hystereses(brake, braking, brake_steady, v_ego, car_fingerprint):
   # hyst params
@@ -63,25 +64,25 @@ def process_hud_alert(hud_alert):
   fcw_display = 0
   steer_required = 0
   acc_alert = 0
-  if hud_alert == AH.NONE:          # no alert
-    pass
-  elif hud_alert == AH.FCW:         # FCW
-    fcw_display = hud_alert[1]
-  elif hud_alert == AH.STEER:       # STEER
-    steer_required = hud_alert[1]
-  else:                             # any other ACC alert
-    acc_alert = hud_alert[1]
+
+  # priority is: FCW, steer required, all others
+  if hud_alert == VisualAlert.fcw:
+    fcw_display = VISUAL_HUD[hud_alert.raw]
+  elif hud_alert == VisualAlert.steerRequired:
+    steer_required = VISUAL_HUD[hud_alert.raw]
+  else:
+    acc_alert = VISUAL_HUD[hud_alert.raw]
 
   return fcw_display, steer_required, acc_alert
 
 
 HUDData = namedtuple("HUDData",
-                     ["pcm_accel", "v_cruise", "mini_car", "car", "X4",
-                      "lanes", "fcw", "acc_alert", "steer_required", "dist_lines", "dashed_lanes"])
+                     ["pcm_accel", "v_cruise",  "car",
+                     "lanes", "fcw", "acc_alert", "steer_required", "dist_lines", "dashed_lanes"])
 
 
 class CarController():
-  def __init__(self, dbc_name):
+  def __init__(self, dbc_name, CP):
     self.braking = False
     self.brake_steady = 0.
     self.brake_last = 0.
@@ -91,6 +92,11 @@ class CarController():
     self.new_radar_config = False
     self.prev_lead_distance = 0.0
 
+    self.eps_modified = False
+    for fw in CP.carFw:
+      if fw.ecu == "eps" and b"," in fw.fwVersion:
+        print("EPS FW MODIFIED!")
+        self.eps_modified = True
 
   def update(self, enabled, CS, frame, actuators, \
              pcm_speed, pcm_override, pcm_cancel_cmd, pcm_accel, \
@@ -105,7 +111,7 @@ class CarController():
       pcm_cancel_cmd = True
 
     # *** rate limit after the enable check ***
-    self.brake_last = rate_limit(brake, self.brake_last, -2., 1./100)
+    self.brake_last = rate_limit(brake, self.brake_last, -2., DT_CTRL)
 
     # vehicle hud display, wait for one update from 10Hz 0x304 msg
     if hud_show_lanes and CS.lkMode and not CS.left_blinker_on and not CS.right_blinker_on:
@@ -123,8 +129,8 @@ class CarController():
 
     fcw_display, steer_required, acc_alert = process_hud_alert(hud_alert)
 
-    hud = HUDData(int(pcm_accel), int(round(hud_v_cruise)), 1, hud_car,
-                  0xc1, hud_lanes, fcw_display, acc_alert, steer_required, CS.read_distance_lines, CS.lkMode)
+    hud = HUDData(int(pcm_accel), int(round(hud_v_cruise)), hud_car,
+                  hud_lanes, fcw_display, acc_alert, steer_required, CS.read_distance_lines, CS.lkMode)
 
     # **** process the car messages ****
 
@@ -133,9 +139,11 @@ class CarController():
     if CS.CP.carFingerprint in (CAR.ACURA_ILX):
       STEER_MAX = 0xF00
     elif CS.CP.carFingerprint in (CAR.CRV, CAR.ACURA_RDX):
-      STEER_MAX = 0x3e8  # CR-V only uses 12-bits and requires a lower value (max value from energee)
+      STEER_MAX = 0x3e8  # CR-V only uses 12-bits and requires a lower value
     elif CS.CP.carFingerprint in (CAR.ODYSSEY_CHN):
       STEER_MAX = 0x7FFF
+    elif CS.CP.carFingerprint in (CAR.CIVIC) and self.eps_modified:
+      STEER_MAX = 0x1400
     else:
       STEER_MAX = 0x1000
 
@@ -146,6 +154,12 @@ class CarController():
     apply_steer = int(clip(-actuators.steer * STEER_MAX, -STEER_MAX, STEER_MAX))
 
     lkas_active = enabled and not CS.steer_not_allowed and CS.lkMode #and not CS.left_blinker_on and not CS.right_blinker_on  # add LKAS button to toggle steering
+    if CS.CP.carFingerprint in (CAR.CIVIC) and self.eps_modified:
+      if apply_steer > 0xA00:
+        apply_steer = (apply_steer - 0xA00) / 2 + 0xA00
+      elif apply_steer < -0xA00:
+        apply_steer = (apply_steer + 0xA00) / 2 - 0xA00
+
 
     # Send CAN commands.
     can_sends = []
