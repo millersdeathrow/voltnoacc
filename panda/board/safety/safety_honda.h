@@ -140,6 +140,8 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
         honda_gas_prev = gas;
       }
     }
+    
+    /*
     if ((bus == 2) && (addr == 0x1FA)) {
       bool honda_stock_aeb = GET_BYTE(to_push, 3) & 0x20;
       int honda_stock_brake = (GET_BYTE(to_push, 0) << 2) + ((GET_BYTE(to_push, 1) >> 6) & 0x3);
@@ -154,6 +156,7 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
         // Leave Honda forward brake as is
       }
     }
+    */
 
     // if steering controls messages are received on the destination bus, it's an indication
     // that the relay might be malfunctioning
