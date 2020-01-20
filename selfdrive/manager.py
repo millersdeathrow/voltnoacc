@@ -144,7 +144,7 @@ managed_processes = {
   "proclogd": ("selfdrive/proclogd", ["./proclogd"]),
   "boardd": ("selfdrive/boardd", ["./boardd"]),   # not used directly
   "pandad": "selfdrive.pandad",
-  "ui": ("selfdrive/ui", ["./start.py"]),
+  "ui": ("selfdrive/ui", ["./ui"]),
   "calibrationd": "selfdrive.locationd.calibrationd",
   "paramsd": ("selfdrive/locationd", ["./paramsd"]),
   "camerad": ("selfdrive/camerad", ["./camerad"]),
