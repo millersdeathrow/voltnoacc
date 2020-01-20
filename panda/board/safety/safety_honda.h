@@ -6,11 +6,10 @@
 //      accel rising edge
 //      brake rising edge
 //      brake > 0mph
-
 const AddrBus HONDA_N_TX_MSGS[] = {{0xE4, 0}, {0x194, 0}, {0x1FA, 0}, {0x200, 0}, {0x30C, 0}, {0x33D, 0}};
 const AddrBus HONDA_BG_TX_MSGS[] = {{0xE4, 2}, {0x296, 0}, {0x33D, 2}};  // Bosch Giraffe
 const AddrBus HONDA_BH_TX_MSGS[] = {{0xE4, 0}, {0x296, 1}, {0x33D, 0}};  // Bosch Harness
-const int HONDA_GAS_INTERCEPTOR_THRESHOLD = 800;  // ratio between offset and gain from dbc file
+const int HONDA_GAS_INTERCEPTOR_THRESHOLD = 328;  // ratio between offset and gain from dbc file
 
 // Nidec and Bosch giraffe have pt on bus 0
 AddrCheckStruct honda_rx_checks[] = {
@@ -28,7 +27,6 @@ AddrCheckStruct honda_bh_rx_checks[] = {
 };
 const int HONDA_BH_RX_CHECKS_LEN = sizeof(honda_bh_rx_checks) / sizeof(honda_bh_rx_checks[0]);
 
->>>>>>> upstream/devel
 int honda_brake = 0;
 int honda_gas_prev = 0;
 bool honda_brake_pressed_prev = false;
@@ -142,8 +140,6 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
         honda_gas_prev = gas;
       }
     }
-
-    /*
     if ((bus == 2) && (addr == 0x1FA)) {
       bool honda_stock_aeb = GET_BYTE(to_push, 3) & 0x20;
       int honda_stock_brake = (GET_BYTE(to_push, 0) << 2) + ((GET_BYTE(to_push, 1) >> 6) & 0x3);
@@ -158,7 +154,6 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
         // Leave Honda forward brake as is
       }
     }
-    */
 
     // if steering controls messages are received on the destination bus, it's an indication
     // that the relay might be malfunctioning
