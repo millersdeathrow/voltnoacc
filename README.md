@@ -17,6 +17,11 @@ Remember to manually flash panda after checking out.  cd /data/openpilot/panda/b
 <b>kegman-plusBoschGasPress</b> - this branch gives Honda Bosch users the ability to press the gas without disengaging OP for more "stock ACC"-like behaviour.  
 
 
+Known bugs in 0.7.1:
+- Dev UI no longer works as of this release - tried but can't get it functioning
+- BoschGasPress also does not work as of Panda code refactoring by Comma
+- If anyone can get these things to work let me know
+
 Known bugs in 0.7:
 - UI settings menu not accessible while car is on.
 - ACC icon light on dash may turn yellow - does not affect OP engage-ability.
