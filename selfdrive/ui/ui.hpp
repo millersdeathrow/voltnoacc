@@ -32,7 +32,7 @@
 #endif
 
 #define UI_BUF_COUNT 4
-//#define SHOW_SPEEDLIMIT 1
+#define SHOW_SPEEDLIMIT 1
 //#define DEBUG_TURN
 
 const int vwp_w = 1920;
@@ -87,6 +87,9 @@ typedef struct UIScene {
   bool decel_for_model;
 
   float speedlimit;
+  //float angleSteers;
+  float speedlimitaheaddistance;
+  bool speedlimitahead_valid;
   bool speedlimit_valid;
   bool map_valid;
 
