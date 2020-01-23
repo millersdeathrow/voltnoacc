@@ -114,6 +114,7 @@ static void ui_init(UIState *s) {
   s->livecalibration_sock = SubSocket::create(s->ctx, "liveCalibration");
   s->radarstate_sock = SubSocket::create(s->ctx, "radarState");
   s->thermal_sock = SubSocket::create(s->ctx, "thermal");
+  s->carstate_sock = SubSocket::create(s->ctx, "carState");
 
   assert(s->model_sock != NULL);
   assert(s->controlsstate_sock != NULL);
@@ -121,6 +122,7 @@ static void ui_init(UIState *s) {
   assert(s->livecalibration_sock != NULL);
   assert(s->radarstate_sock != NULL);
   assert(s->thermal_sock != NULL);
+  assert(s->carstate_sock != NULL);
 
   s->poller = Poller::create({
                               s->model_sock,
@@ -128,7 +130,8 @@ static void ui_init(UIState *s) {
                               s->uilayout_sock,
                               s->livecalibration_sock,
                               s->radarstate_sock,
-                              s->thermal_sock
+                              s->thermal_sock,
+			      s->carstate_sock
                              });
 
 #ifdef SHOW_SPEEDLIMIT
@@ -437,6 +440,10 @@ void handle_message(UIState *s, Message * msg) {
 
     s->scene.pa0 = datad.pa0;
     s->scene.freeSpace = datad.freeSpace;
+  } else if (eventd.which == cereal_Event_carState) {
+    struct cereal_CarState datad;
+    cereal_read_CarState(&datad, eventd.carState);
+    s->scene.brakeLights = datad.brakeLights;
   }
   capn_free(&ctx);
 }
@@ -511,8 +518,8 @@ static void ui_update(UIState *s) {
     assert(glGetError() == GL_NO_ERROR);
 
     // Default UI Measurements (Assumes sidebar collapsed)
-    s->scene.ui_viz_rx = (box_x-sbr_w+bdr_s*2);
-    s->scene.ui_viz_rw = (box_w+sbr_w-(bdr_s*2));
+    s->scene.ui_viz_rx = (box_x-sbr_w+bdr_is*2);
+    s->scene.ui_viz_rw = (box_w+sbr_w-(bdr_is*2));
     s->scene.ui_viz_ro = 0;
 
     s->vision_connect_firstrun = false;
