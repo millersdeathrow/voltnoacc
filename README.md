@@ -18,7 +18,6 @@ Remember to manually flash panda after checking out.  cd /data/openpilot/panda/b
 
 
 Known bugs in 0.7.1:
-- Dev UI no longer works as of this release - tried but can't get it functioning
 - BoschGasPress also does not work as of Panda code refactoring by Comma
 - If anyone can get these things to work let me know
 
