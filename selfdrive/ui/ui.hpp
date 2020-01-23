@@ -32,7 +32,7 @@
 #endif
 
 #define UI_BUF_COUNT 4
-//#define SHOW_SPEEDLIMIT 1
+#define SHOW_SPEEDLIMIT 1
 //#define DEBUG_TURN
 
 const int vwp_w = 1920;
@@ -87,6 +87,9 @@ typedef struct UIScene {
   bool decel_for_model;
 
   float speedlimit;
+  float angleSteers;
+  float speedlimitaheaddistance;
+  bool speedlimitahead_valid;
   bool speedlimit_valid;
   bool map_valid;
 
@@ -117,6 +120,12 @@ typedef struct UIScene {
 
   // Used to show gps planner status
   bool gps_planner_active;
+
+  // dev ui
+  float angleSteersDes;
+  float pa0;
+  float freeSpace;
+
 } UIScene;
 
 typedef struct {
@@ -242,6 +251,9 @@ typedef struct UIState {
   model_path_vertices_data model_path_vertices[MODEL_LANE_PATH_CNT * 2];
 
   track_vertices_data track_vertices[2];
+
+  // dev ui
+  SubSocket *thermal_sock;
 } UIState;
 
 // API
