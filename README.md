@@ -1,3 +1,5 @@
+NOTE: After an update (automatic or manual), your screen may go to sleep and refuse to wake up.  Press and hold power to reboot.  After a couple of reboots after an update the problem should go away.  I'm still trying to track down the issue of why the UI service stops after sleeping.
+
 ** REFLASH PANDA AS I HAVE RE-INSTATED STOCK HONDA FCW AFTER COMMA'S FIX ON kegman-0.7 **
 
 This is a fork of comma's openpilot: https://github.com/commaai/openpilot, and contains tweaks for Hondas and GM vehicles.  It is open source and inherits MIT license.  By installing this software you accept all responsibility for anything that might occur while you use it.  All contributors to this fork are not liable.  <b>Use at your own risk.</b>
